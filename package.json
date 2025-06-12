@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "lucide": "^0.514.0"
+  },
+  "devDependencies": {
+    "daisyui": "^5.0.43",
+    "esbuild": "^0.25.5",
+    "tailwindcss": "^4.1.8"
+  }
+}

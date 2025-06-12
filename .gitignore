@@ -30,3 +30,12 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# SQLite
+*.db
+
+# JS
+node_modules
+assets/dist
+
+tmp

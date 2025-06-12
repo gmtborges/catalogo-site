@@ -1,0 +1,35 @@
+package page
+
+import "github.com/gmtborges/catalogo-site/internal/view/layout"
+
+templ LandingIndex() {
+	@layout.Base() {
+		<header class="navbar max-w-5xl w-full mx-auto">
+			<div class="navbar-start">
+				<i data-lucide="scroll-text" class="text-primary mr-1"></i>
+				<a href="/" class="hover:cursor-pointer font-bold text-xl">catalogo.site</a>
+			</div>
+			<div class="navbar-end">
+				<a href="/login" class="btn btn-primary">Entrar</a>
+			</div>
+		</header>
+		<main class="px-4 pb-12 pt-20">
+			<div class="mx-auto max-w-5xl text-center">
+				<h1 class="mb-6 text-6xl font-bold">
+					<span class="inline bg-gradient-to-r from-teal-300 to-teal-600 bg-clip-text text-transparent">
+						Vem ser digital!
+					</span>
+				</h1>
+				<h2 class="mb-8 text-xl">
+					Nossa plataforma conecta a sua loja física com os seus clientes.
+				</h2>
+			</div>
+			<div class="flex justify-center">
+				<label class="input input-lg w-2/4">
+					<input type="text" placeholder="Buscar produtos e serviços..."/>
+					<span data-lucide="search"></span>
+				</label>
+			</div>
+		</main>
+	}
+}
