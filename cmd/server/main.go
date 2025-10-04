@@ -4,17 +4,17 @@ import (
 	"log"
 
 	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
+
+	"github.com/gmtborges/catalogo-site/web/landing"
 )
 
 func main() {
 	app := pocketbase.New()
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
-		// registers new "GET /hello" route
-		se.Router.GET("/hello", func(re *core.RequestEvent) error {
-			return re.String(200, "Hello pocketbase!")
-		})
+		se.Router.GET("/{path...}", apis.Static(landing.DistDirFS, true))
 
 		return se.Next()
 	})
