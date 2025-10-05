@@ -56,8 +56,11 @@ function App() {
             </Link>
           </div>
           <div className="flex items-center gap-3">
+            <Button variant="outline" asChild>
+              <Link to="/entrar">Entrar</Link>
+            </Button>
             <Button asChild>
-              <Link to="/login">Entrar</Link>
+              <Link to="/cadastrar">Criar loja</Link>
             </Button>
             <ThemeToggle />
           </div>

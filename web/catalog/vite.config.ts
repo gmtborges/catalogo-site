@@ -12,12 +12,6 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
-  server: {
-    port: 3001,
-    proxy: {
-      "/api": "localhost:8090/api",
-    },
-  },
   resolve: {
     alias: {
       "@": resolve(__dirname, "./src"),
