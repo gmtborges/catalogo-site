@@ -13,6 +13,7 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
+    port: 3001,
     proxy: {
       "/api": "localhost:8090/api",
     },
