@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,10 +22,22 @@ type LoginStep = "email" | "otp";
 
 function RouteComponent() {
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
+  const [code, setCode] = useState("");
+  const [otpID, setOTPID] = useState("");
   const [currentStep, setCurrentStep] = useState<LoginStep>("email");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [resendCountdown, setResendCountdown] = useState(0);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (resendCountdown > 0) {
+      timer = setTimeout(() => {
+        setResendCountdown(resendCountdown - 1);
+      }, 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resendCountdown]);
 
   const handleRequestOTP = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,10 +45,12 @@ function RouteComponent() {
     setError("");
 
     try {
-      await pb.collection("users").requestOTP(email);
+      const requestOTP = await pb.collection("users").requestOTP(email);
+      setOTPID(requestOTP.otpId);
       setCurrentStep("otp");
+      setResendCountdown(60);
     } catch (err: any) {
-      setError(err.message || "Falha ao enviar OTP");
+      setError("Falha ao enviar senha única");
     } finally {
       setIsLoading(false);
     }
@@ -48,20 +62,13 @@ function RouteComponent() {
     setError("");
 
     try {
-      const req = await pb.collection("users").requestOTP(email);
-      const authData = await pb.collection("users").authWithOTP(req.otpId, otp);
+      const authData = await pb.collection("users").authWithOTP(otpID, code);
       console.log(authData.record.id);
     } catch (err: any) {
-      setError(err.message || "OTP inválido");
+      setError("senha única inválida");
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleBackToEmail = () => {
-    setCurrentStep("email");
-    setOtp("");
-    setError("");
   };
 
   const handleResendOTP = async () => {
@@ -69,9 +76,11 @@ function RouteComponent() {
     setError("");
 
     try {
-      await pb.collection("users").requestOTP(email);
+      const requestOTP = await pb.collection("users").requestOTP(email);
+      setOTPID(requestOTP.otpId);
+      setResendCountdown(60);
     } catch (err: any) {
-      setError(err.message || "Falha ao reenviar OTP");
+      setError("Falha ao reenviar senha única");
     } finally {
       setIsLoading(false);
     }
@@ -84,7 +93,7 @@ function RouteComponent() {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">
               {currentStep === "email"
-                ? "Entrar com código OTP"
+                ? "Entrar com senha de uso único"
                 : "Digite o código de verificação"}
             </CardTitle>
             <CardDescription className="text-center">
@@ -114,9 +123,7 @@ function RouteComponent() {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading
-                    ? "Enviando OTP..."
-                    : "Enviar código de verificação"}
+                  {isLoading ? "Enviando OTP..." : "Entrar"}
                 </Button>
               </form>
             ) : (
@@ -128,38 +135,35 @@ function RouteComponent() {
                       id="otp"
                       type="text"
                       placeholder="Digite o código"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
                       maxLength={6}
-                      className="text-center text-lg tracking-widest"
+                      className="text-center text-lg tracking-wide"
                       required
                     />
                   </div>
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={isLoading || otp.length < 6}
+                    disabled={isLoading || code.length < 6}
                   >
                     {isLoading ? "Verificando..." : "Verificar código"}
                   </Button>
                 </form>
 
                 <div className="flex flex-col space-y-2 text-center text-sm">
-                  <button
-                    type="button"
+                  <span className="text-muted-foreground">
+                    {resendCountdown == 0
+                      ? "Código expirado"
+                      : `Código expira em ${resendCountdown}s`}
+                  </span>
+                  <Button
+                    disabled={resendCountdown > 0}
+                    variant="link"
                     onClick={handleResendOTP}
-                    className="text-primary hover:text-primary/80"
-                    disabled={isLoading}
                   >
-                    Reenviar código de verificação
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleBackToEmail}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    Usar email diferente
-                  </button>
+                    Reenviar código
+                  </Button>
                 </div>
               </div>
             )}

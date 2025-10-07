@@ -18,18 +18,18 @@ export const Route = createFileRoute("/cadastrar")({
   component: RouteComponent,
 });
 
-type RegisterStep = "email" | "otp" | "store";
+type RegisterStep = "form" | "otp";
 
 function RouteComponent() {
-  const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [otpID, setOTPID] = useState("");
-  const [currentStep, setCurrentStep] = useState<RegisterStep>("store");
+  const [currentStep, setCurrentStep] = useState<RegisterStep>("form");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [resendCountdown, setResendCountdown] = useState(0);
 
-  // Store
+  // Form
+  const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [subdomain, setSubdomain] = useState("");
   const [cnpj, setCnpj] = useState("");
@@ -44,49 +44,16 @@ function RouteComponent() {
     return () => clearTimeout(timer);
   }, [resendCountdown]);
 
-  const handleCreateUser = async (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
     try {
-      await pb
-        .collection("users")
-        .create({ email, password: "password", passwordConfirm: "password" });
-      const requestOTP = await pb.collection("users").requestOTP(email);
-      setOTPID(requestOTP.otpId);
-      setCurrentStep("otp");
-      setResendCountdown(60);
     } catch (err: any) {
-      if (err.response.data.email.code === "validation_not_unique") {
-        setError("Email já utilizado");
-      } else {
-        setError("Falha ao enviar código de confirmação");
-      }
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleOTP = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
-
-    try {
-      await pb.collection("users").authWithOTP(otpID, code);
-      setCurrentStep("store");
-    } catch (err: any) {
-      setError("Código inválido");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCreateStore = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
 
     const subdomainPattern = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
     const reservedNames = [
@@ -134,15 +101,47 @@ function RouteComponent() {
       formData.append("subdomain", subdomain);
       formData.append("cnpj", cnpj);
 
-      const record = await pb.collection("stores").create(formData);
-      console.log("Catalog created:", record.id);
-      // TODO: Redirect to success page or dashboard
+      const [userResult, storeResult] = await Promise.all([
+        pb.collection("users").create({
+          email,
+          password: "password",
+          passwordConfirm: "password",
+        }),
+        pb.collection("stores").create(formData),
+      ]);
+
+      if (userResult && storeResult) {
+        const requestOTP = await pb.collection("users").requestOTP(email);
+        setOTPID(requestOTP.otpId);
+        setCurrentStep("otp");
+        setResendCountdown(60);
+      }
     } catch (err: any) {
+      console.log({ ...err });
+      if (err.response?.data?.email?.code === "validation_not_unique") {
+        setError("Email já utilizado");
+        return;
+      }
       if (err.response?.data?.subdomain?.code === "validation_not_unique") {
         setError("Este subdomínio já está em uso, escolha outro");
-      } else {
-        setError("Falha ao criar loja");
+        return;
       }
+      setError("Falha ao criar loja");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+
+    try {
+      await pb.collection("users").authWithOTP(otpID, code);
+      //TODO: redirect to store
+    } catch (err: any) {
+      setError("Código inválido");
     } finally {
       setIsLoading(false);
     }
@@ -154,8 +153,8 @@ function RouteComponent() {
     setResendCountdown(60);
   };
 
-  const renderEmailStep = () => (
-    <form onSubmit={handleCreateUser} className="space-y-4">
+  const renderFormStep = () => (
+    <form onSubmit={handleCreate} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
@@ -164,6 +163,53 @@ function RouteComponent() {
           placeholder="Digite seu email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="name">Nome do Loja</Label>
+        <Input
+          id="name"
+          type="text"
+          placeholder="Digite o nome da sua loja"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          minLength={2}
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="url">Subdomínio</Label>
+        <div className="flex">
+          <Input
+            id="url"
+            type="text"
+            placeholder="minhaloja"
+            value={subdomain}
+            pattern="[a-z0-9-]"
+            maxLength={25}
+            minLength={2}
+            onChange={(e) => setSubdomain(e.target.value)}
+            className="rounded-r-none"
+            required
+          />
+          <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-input bg-muted text-muted-foreground text-sm">
+            .catalogo.site
+          </span>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="cnpj">CNPJ</Label>
+        <Input
+          id="cnpj"
+          inputMode="numeric"
+          value={cnpj}
+          placeholder="00.000.000/0000-00"
+          pattern="[0-9]{14}"
+          onChange={(e) => setCnpj(e.target.value)}
+          minLength={14}
           required
         />
       </div>
@@ -214,72 +260,12 @@ function RouteComponent() {
     </div>
   );
 
-  const renderStoreStep = () => (
-    <form onSubmit={handleCreateStore} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">Nome do Loja</Label>
-        <Input
-          id="name"
-          type="text"
-          placeholder="Digite o nome da sua loja"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          minLength={2}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="url">Subdomínio</Label>
-        <div className="flex">
-          <Input
-            id="url"
-            type="text"
-            placeholder="minhaloja"
-            value={subdomain}
-            pattern="^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
-            maxLength={25}
-            minLength={2}
-            onChange={(e) => setSubdomain(e.target.value)}
-            className="rounded-r-none"
-            required
-          />
-          <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-input bg-muted text-muted-foreground text-sm">
-            .catalogo.site
-          </span>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="cnpj">CNPJ</Label>
-        <Input
-          id="cnpj"
-          inputMode="numeric"
-          value={cnpj}
-          placeholder="00.000.000/0000-00"
-          pattern="[0-9]{14}"
-          onChange={(e) => setCnpj(e.target.value)}
-          minLength={14}
-          required
-        />
-      </div>
-
-      <div className="flex space-x-2">
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Criando..." : "Criar Loja"}
-        </Button>
-      </div>
-    </form>
-  );
-
   const getStepTitle = () => {
     switch (currentStep) {
-      case "email":
+      case "form":
         return "Criar loja";
       case "otp":
-        return "Verificar email";
-      case "store":
-        return "Informações da loja";
+        return "Verificar conta";
       default:
         return "";
     }
@@ -287,12 +273,10 @@ function RouteComponent() {
 
   const getStepDescription = () => {
     switch (currentStep) {
-      case "email":
-        return "Digite seu email para começar";
+      case "form":
+        return "Informe os seguintes dados";
       case "otp":
         return `Enviamos um código de verificação para ${email}`;
-      case "store":
-        return "";
       default:
         return "";
     }
@@ -317,9 +301,8 @@ function RouteComponent() {
               </div>
             )}
 
-            {currentStep === "email" && renderEmailStep()}
+            {currentStep === "form" && renderFormStep()}
             {currentStep === "otp" && renderOTPStep()}
-            {currentStep === "store" && renderStoreStep()}
           </CardContent>
         </Card>
       </div>
