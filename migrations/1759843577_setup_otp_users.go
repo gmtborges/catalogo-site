@@ -7,19 +7,17 @@ import (
 
 func init() {
 	m.Register(func(app core.App) error {
-		usersCollection, err := app.FindCollectionByNameOrId("users")
+		u, err := app.FindCollectionByNameOrId("users")
 		if err != nil {
 			return err
 		}
+		u.PasswordAuth.Enabled = false
+		u.OTP.Enabled = true
+		u.OTP.Length = 6
+		u.OTP.Duration = 60
 
-		usersCollection.PasswordAuth.Enabled = false
-		usersCollection.OTP.Enabled = true
-		usersCollection.OTP.Duration = 60
-
-		return app.Save(usersCollection)
+		return app.Save(u)
 	}, func(app core.App) error {
-		// add down queries...
-
 		return nil
 	})
 }

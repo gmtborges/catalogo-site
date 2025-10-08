@@ -4,6 +4,9 @@ dev:
 air: 
 	@air
 
+migrate:
+	@go run cmd/migrate/main.go migrate up
+
 dev-landing: 
 	@cd web/landing && npm run dev	
 

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ function RouteComponent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [resendCountdown, setResendCountdown] = useState(0);
+  const navigate = useNavigate({ from: "/cadastrar" });
 
   // Form
   const [email, setEmail] = useState("");
@@ -76,8 +77,8 @@ function RouteComponent() {
       return;
     }
 
-    if (subdomain.length > 25) {
-      setError("Subdomínio deve ter no máximo 25 caracteres");
+    if (subdomain.length > 30) {
+      setError("Subdomínio deve ter no máximo 30 caracteres");
       setIsLoading(false);
       return;
     }
@@ -96,28 +97,22 @@ function RouteComponent() {
       return;
     }
     try {
-      const formData = new FormData();
-      formData.append("name", name);
-      formData.append("subdomain", subdomain);
-      formData.append("cnpj", cnpj);
-
-      const [userResult, storeResult] = await Promise.all([
-        pb.collection("users").create({
-          email,
-          password: "password",
-          passwordConfirm: "password",
-        }),
-        pb.collection("stores").create(formData),
-      ]);
-
-      if (userResult && storeResult) {
-        const requestOTP = await pb.collection("users").requestOTP(email);
-        setOTPID(requestOTP.otpId);
-        setCurrentStep("otp");
-        setResendCountdown(60);
-      }
+      const user = await pb.collection("users").create({
+        email,
+        password: "password",
+        passwordConfirm: "password",
+      });
+      await pb.collection("stores").create({
+        name,
+        subdomain,
+        cnpj,
+        user: [user.id],
+      });
+      const requestOTP = await pb.collection("users").requestOTP(email);
+      setOTPID(requestOTP.otpId);
+      setCurrentStep("otp");
+      setResendCountdown(60);
     } catch (err: any) {
-      console.log({ ...err });
       if (err.response?.data?.email?.code === "validation_not_unique") {
         setError("Email já utilizado");
         return;
@@ -139,8 +134,9 @@ function RouteComponent() {
 
     try {
       await pb.collection("users").authWithOTP(otpID, code);
-      //TODO: redirect to store
+      navigate({ to: "/admin" });
     } catch (err: any) {
+      console.error({ ...err });
       setError("Código inválido");
     } finally {
       setIsLoading(false);
@@ -160,7 +156,7 @@ function RouteComponent() {
         <Input
           id="email"
           type="email"
-          placeholder="Digite seu email"
+          placeholder="email@examplo.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -171,7 +167,7 @@ function RouteComponent() {
         <Input
           id="name"
           type="text"
-          placeholder="Digite o nome da sua loja"
+          placeholder="Minha Loja"
           value={name}
           onChange={(e) => setName(e.target.value)}
           minLength={2}
@@ -187,8 +183,8 @@ function RouteComponent() {
             type="text"
             placeholder="minhaloja"
             value={subdomain}
-            pattern="[a-z0-9-]"
-            maxLength={25}
+            pattern="[a-z0-9]([a-z0-9\-]*[a-z0-9])?"
+            maxLength={30}
             minLength={2}
             onChange={(e) => setSubdomain(e.target.value)}
             className="rounded-r-none"

@@ -11,7 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as CadastrarRouteImport } from './routes/cadastrar'
+import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminConfiguracoesRouteImport } from './routes/admin/configuracoes'
 
 const EntrarRoute = EntrarRouteImport.update({
   id: '/entrar',
@@ -23,38 +26,75 @@ const CadastrarRoute = CadastrarRouteImport.update({
   path: '/cadastrar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRouteRoute = AdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
   '/cadastrar': typeof CadastrarRoute
   '/entrar': typeof EntrarRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cadastrar': typeof CadastrarRoute
   '/entrar': typeof EntrarRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
   '/cadastrar': typeof CadastrarRoute
   '/entrar': typeof EntrarRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/cadastrar' | '/entrar'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/cadastrar'
+    | '/entrar'
+    | '/admin/configuracoes'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/cadastrar' | '/entrar'
-  id: '__root__' | '/' | '/cadastrar' | '/entrar'
+  to: '/' | '/cadastrar' | '/entrar' | '/admin/configuracoes' | '/admin'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/cadastrar'
+    | '/entrar'
+    | '/admin/configuracoes'
+    | '/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
   CadastrarRoute: typeof CadastrarRoute
   EntrarRoute: typeof EntrarRoute
 }
@@ -75,6 +115,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CadastrarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -82,11 +129,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/configuracoes': {
+      id: '/admin/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/admin/configuracoes'
+      preLoaderRoute: typeof AdminConfiguracoesRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
   }
 }
 
+interface AdminRouteRouteChildren {
+  AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminConfiguracoesRoute: AdminConfiguracoesRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
   CadastrarRoute: CadastrarRoute,
   EntrarRoute: EntrarRoute,
 }

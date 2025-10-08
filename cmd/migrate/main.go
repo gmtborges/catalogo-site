@@ -7,6 +7,8 @@ import (
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
+
+	_ "github.com/gmtborges/catalogo-site/migrations"
 )
 
 func main() {
